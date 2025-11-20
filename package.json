@@ -1,0 +1,62 @@
+{
+  "name": "cropperjs-react-wrapper",
+  "version": "1.0.1",
+  "description": "A React wrapper for Cropper.js 2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/trigger-xyz/cropperjs-react-wrapper.git"
+  },
+  "keywords": [
+    "react",
+    "cropperjs",
+    "cropper",
+    "image-cropper",
+    "image-editor",
+    "web-components"
+  ],
+  "author": "Trigger",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "dev": "vite",
+    "dev:demo": "vite -c vite.demo.config.ts",
+    "build": "vite build",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.6",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.6",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "jsdom": "^27.2.0",
+    "vite": "^7.2.4",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.0.12"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "cropperjs": "^2.1.0"
+  }
+}
