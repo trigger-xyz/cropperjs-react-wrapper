@@ -119,13 +119,11 @@ const App = () => {
   };
 
   const handleFlipHorizontal = () => {
-    const newScaleX = scaleX * -1;
-    setScaleX(newScaleX);
+    setScaleX((prev) => prev * -1);
   };
 
   const handleFlipVertical = () => {
-    const newScaleY = scaleY * -1;
-    setScaleY(newScaleY);
+    setScaleY((prev) => prev * -1);
   };
 
   const handleZoom = (delta: number) => {
@@ -135,26 +133,19 @@ const App = () => {
     }
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: normal
   useEffect(() => {
     const image = imageRef.current;
     if (image) {
-      image.$scale(-1, scaleY);
+      image.$scale(scaleX, scaleY);
     }
-  }, [scaleX]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: normal
-  useEffect(() => {
-    const image = imageRef.current;
-    if (image) {
-      image.$scale(scaleX, -1);
-    }
-  }, [scaleY]);
+  }, [scaleX, scaleY]);
 
   const handleResetTransformations = () => {
     const image = imageRef.current;
     if (image) {
       image.$resetTransform();
+      setScaleX(1);
+      setScaleY(1);
     }
   };
 
@@ -176,11 +167,9 @@ const App = () => {
     if (!livePreview) return;
 
     try {
-      // Convert data URL to blob
       const response = await fetch(livePreview);
       const blob = await response.blob();
 
-      // Create download link
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -189,7 +178,6 @@ const App = () => {
       link.click();
       document.body.removeChild(link);
 
-      // Clean up
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading image:', error);

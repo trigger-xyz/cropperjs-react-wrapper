@@ -8,15 +8,18 @@ import {
   forwardRef,
   type HTMLAttributes,
   useEffect,
-  useImperativeHandle,
-  useRef,
 } from 'react';
+import { useCustomEvents, useForwardedRef } from '../hooks';
 
 export interface CropperSelectionProps
   extends Omit<
     DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>,
     'onChange'
   > {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
   aspectRatio?: number;
   initialAspectRatio?: number;
   initialCoverage?: number;
@@ -27,6 +30,8 @@ export interface CropperSelectionProps
   keyboard?: boolean;
   outlined?: boolean;
   precise?: boolean;
+  dynamic?: boolean;
+  active?: boolean;
   bounded?: boolean;
   themeColor?: string;
   onAction?: (event: CustomEvent) => void;
@@ -42,6 +47,10 @@ export const CropperSelection = forwardRef<
 >(
   (
     {
+      x,
+      y,
+      width,
+      height,
       aspectRatio,
       initialAspectRatio,
       initialCoverage,
@@ -52,6 +61,8 @@ export const CropperSelection = forwardRef<
       keyboard,
       outlined,
       precise,
+      dynamic,
+      active,
       bounded,
       themeColor,
       onAction,
@@ -64,33 +75,35 @@ export const CropperSelection = forwardRef<
     },
     ref,
   ) => {
-    const elementRef = useRef<CropperSelectionElement>(null);
+    const elementRef = useForwardedRef<CropperSelectionElement>(ref);
 
-    useImperativeHandle(
-      ref,
-      () => elementRef.current as CropperSelectionElement,
-      [],
-    );
-
-    // Update props
+    // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
     useEffect(() => {
-      if (!elementRef.current) return;
-      const element = elementRef.current;
-
-      if (aspectRatio !== undefined) element.aspectRatio = aspectRatio;
+      const el = elementRef.current;
+      if (!el) return;
+      if (x !== undefined) el.x = x;
+      if (y !== undefined) el.y = y;
+      if (width !== undefined) el.width = width;
+      if (height !== undefined) el.height = height;
+      if (aspectRatio !== undefined) el.aspectRatio = aspectRatio;
       if (initialAspectRatio !== undefined)
-        element.initialAspectRatio = initialAspectRatio;
-      if (initialCoverage !== undefined)
-        element.initialCoverage = initialCoverage;
-      if (movable !== undefined) element.movable = movable;
-      if (resizable !== undefined) element.resizable = resizable;
-      if (zoomable !== undefined) element.zoomable = zoomable;
-      if (multiple !== undefined) element.multiple = multiple;
-      if (keyboard !== undefined) element.keyboard = keyboard;
-      if (outlined !== undefined) element.outlined = outlined;
-      if (precise !== undefined) element.precise = precise;
-      if (themeColor !== undefined) element.themeColor = themeColor;
+        el.initialAspectRatio = initialAspectRatio;
+      if (initialCoverage !== undefined) el.initialCoverage = initialCoverage;
+      if (movable !== undefined) el.movable = movable;
+      if (resizable !== undefined) el.resizable = resizable;
+      if (zoomable !== undefined) el.zoomable = zoomable;
+      if (multiple !== undefined) el.multiple = multiple;
+      if (keyboard !== undefined) el.keyboard = keyboard;
+      if (outlined !== undefined) el.outlined = outlined;
+      if (precise !== undefined) el.precise = precise;
+      if (dynamic !== undefined) el.dynamic = dynamic;
+      if (active !== undefined) el.active = active;
+      if (themeColor !== undefined) el.themeColor = themeColor;
     }, [
+      x,
+      y,
+      width,
+      height,
       aspectRatio,
       initialAspectRatio,
       initialCoverage,
@@ -101,96 +114,56 @@ export const CropperSelection = forwardRef<
       keyboard,
       outlined,
       precise,
+      dynamic,
+      active,
       themeColor,
     ]);
 
-    // Event listeners
+    useCustomEvents(elementRef, {
+      action: onAction,
+      actionstart: onActionStart,
+      actionmove: onActionMove,
+      actionend: onActionEnd,
+      change: onChange,
+    });
+
+    // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
     useEffect(() => {
-      const element = elementRef.current;
-      if (!element) return;
-
-      const eventMap: Record<
-        string,
-        ((event: CustomEvent) => void) | undefined
-      > = {
-        action: onAction,
-        actionstart: onActionStart,
-        actionmove: onActionMove,
-        actionend: onActionEnd,
-        change: onChange,
-      };
-
-      Object.entries(eventMap).forEach(([event, handler]) => {
-        if (handler) {
-          element.addEventListener(event, handler as unknown as EventListener);
-        }
-      });
-
-      return () => {
-        Object.entries(eventMap).forEach(([event, handler]) => {
-          if (handler) {
-            element.removeEventListener(
-              event,
-              handler as unknown as EventListener,
-            );
-          }
-        });
-      };
-    }, [onAction, onActionStart, onActionMove, onActionEnd, onChange]);
-
-    // Limit selection to image bounds
-    useEffect(() => {
-      if (!bounded) {
-        return;
-      }
-      const element = elementRef.current;
-      if (!element || !bounded) return;
+      const el = elementRef.current;
+      if (!bounded || !el) return;
 
       const handleLimit = (event: CustomEvent) => {
-        const image = element.parentElement?.querySelector(
+        const canvas = el.parentElement as CropperCanvasElement | null;
+        const image = canvas?.querySelector(
           'cropper-image',
-        ) as CropperImageElement;
-        if (!image) {
-          return;
-        }
-
-        const canvas = element.parentElement as CropperCanvasElement;
-        if (!canvas) {
-          return;
-        }
+        ) as CropperImageElement | null;
+        if (!image || !canvas) return;
 
         const canvasRect = canvas.getBoundingClientRect();
         const imageRect = image.getBoundingClientRect();
         const selection = event.detail;
 
-        // Calculate image boundaries relative to canvas
-        const maxSelection = {
+        const bounds = {
           x: imageRect.left - canvasRect.left,
           y: imageRect.top - canvasRect.top,
           width: imageRect.width,
           height: imageRect.height,
         };
 
-        // Check if selection is within image bounds
         const isWithinBounds =
-          selection.x >= maxSelection.x &&
-          selection.y >= maxSelection.y &&
-          selection.x + selection.width <=
-            maxSelection.x + maxSelection.width &&
-          selection.y + selection.height <=
-            maxSelection.y + maxSelection.height;
+          selection.x >= bounds.x &&
+          selection.y >= bounds.y &&
+          selection.x + selection.width <= bounds.x + bounds.width &&
+          selection.y + selection.height <= bounds.y + bounds.height;
 
         if (!isWithinBounds) {
           event.preventDefault();
         }
       };
 
-      element.addEventListener(
-        'change',
-        handleLimit as unknown as EventListener,
-      );
+      el.addEventListener('change', handleLimit as unknown as EventListener);
       return () => {
-        element.removeEventListener(
+        el.removeEventListener(
           'change',
           handleLimit as unknown as EventListener,
         );
@@ -198,11 +171,13 @@ export const CropperSelection = forwardRef<
     }, [bounded]);
 
     return (
-      // @ts-expect-error
+      // @ts-expect-error web component
       <cropper-selection ref={elementRef} {...rest}>
         {children}
-        {/* @ts-ignore */}
+        {/* @ts-ignore closing tag */}
       </cropper-selection>
     );
   },
 );
+
+CropperSelection.displayName = 'CropperSelection';

@@ -20,6 +20,7 @@ declare global {
         ref?: import('react').RefObject<
           import('cropperjs').CropperImage | null
         >;
+        'initial-center-size'?: string;
         rotatable?: boolean;
         scalable?: boolean;
         skewable?: boolean;
@@ -52,7 +53,13 @@ declare global {
         ref?: import('react').RefObject<
           import('cropperjs').CropperSelection | null
         >;
+        x?: number;
+        y?: number;
+        width?: number;
+        height?: number;
+        active?: boolean;
         'aspect-ratio'?: number;
+        dynamic?: boolean;
         'initial-aspect-ratio'?: number;
         'initial-coverage'?: number;
         movable?: boolean;
@@ -85,6 +92,19 @@ declare global {
         centered?: boolean;
         'theme-color'?: string;
       };
+      'cropper-viewer': import('react').DetailedHTMLProps<
+        import('react').HTMLAttributes<HTMLElement>,
+        HTMLElement
+      > & {
+        ref?: import('react').RefObject<
+          import('cropperjs').CropperViewer | null
+        >;
+        resize?: string;
+        selection?: string;
+        'theme-color'?: string;
+      };
     }
   }
 }
+
+export {};

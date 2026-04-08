@@ -4,9 +4,8 @@ import {
   forwardRef,
   type HTMLAttributes,
   useEffect,
-  useImperativeHandle,
-  useRef,
 } from 'react';
+import { useForwardedRef } from '../hooks';
 
 export interface CropperHandleProps
   extends DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> {
@@ -19,26 +18,21 @@ export const CropperHandle = forwardRef<
   CropperHandleElement,
   CropperHandleProps
 >(({ action, plain, themeColor, ...rest }, ref) => {
-  const elementRef = useRef<CropperHandleElement>(null);
+  const elementRef = useForwardedRef<CropperHandleElement>(ref);
 
-  useImperativeHandle(
-    ref,
-    () => elementRef.current as CropperHandleElement,
-    [],
-  );
-
-  // Update props
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
   useEffect(() => {
-    if (!elementRef.current) return;
-    const element = elementRef.current;
-
-    if (action !== undefined) element.action = action;
-    if (plain !== undefined) element.plain = plain;
-    if (themeColor !== undefined) element.themeColor = themeColor;
+    const el = elementRef.current;
+    if (!el) return;
+    if (action !== undefined) el.action = action;
+    if (plain !== undefined) el.plain = plain;
+    if (themeColor !== undefined) el.themeColor = themeColor;
   }, [action, plain, themeColor]);
 
   return (
-    // @ts-expect-error
+    // @ts-expect-error web component
     <cropper-handle ref={elementRef} {...rest} />
   );
 });
+
+CropperHandle.displayName = 'CropperHandle';

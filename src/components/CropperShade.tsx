@@ -4,9 +4,8 @@ import {
   forwardRef,
   type HTMLAttributes,
   useEffect,
-  useImperativeHandle,
-  useRef,
 } from 'react';
+import { useForwardedRef } from '../hooks';
 
 export interface CropperShadeProps
   extends DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> {
@@ -15,25 +14,20 @@ export interface CropperShadeProps
 
 export const CropperShade = forwardRef<CropperShadeElement, CropperShadeProps>(
   ({ themeColor, ...rest }, ref) => {
-    const elementRef = useRef<CropperShadeElement>(null);
+    const elementRef = useForwardedRef<CropperShadeElement>(ref);
 
-    useImperativeHandle(
-      ref,
-      () => elementRef.current as CropperShadeElement,
-      [],
-    );
-
-    // Update props
+    // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
     useEffect(() => {
-      if (!elementRef.current) return;
-      const element = elementRef.current;
-
-      if (themeColor !== undefined) element.themeColor = themeColor;
+      const el = elementRef.current;
+      if (!el) return;
+      if (themeColor !== undefined) el.themeColor = themeColor;
     }, [themeColor]);
 
     return (
-      // @ts-expect-error
+      // @ts-expect-error web component
       <cropper-shade ref={elementRef} {...rest} />
     );
   },
 );
+
+CropperShade.displayName = 'CropperShade';

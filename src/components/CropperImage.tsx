@@ -4,15 +4,15 @@ import {
   forwardRef,
   type HTMLAttributes,
   useEffect,
-  useImperativeHandle,
-  useRef,
 } from 'react';
+import { useForwardedRef } from '../hooks';
 
 export interface CropperImageProps
   extends DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> {
   src?: string;
   alt?: string;
   crossOrigin?: '' | 'anonymous' | 'use-credentials';
+  initialCenterSize?: 'contain' | 'cover';
   rotatable?: boolean;
   scalable?: boolean;
   skewable?: boolean;
@@ -26,6 +26,7 @@ export const CropperImage = forwardRef<CropperImageElement, CropperImageProps>(
       src,
       alt,
       crossOrigin,
+      initialCenterSize,
       rotatable,
       scalable,
       skewable,
@@ -35,47 +36,44 @@ export const CropperImage = forwardRef<CropperImageElement, CropperImageProps>(
     },
     ref,
   ) => {
-    const elementRef = useRef<CropperImageElement>(null);
+    const elementRef = useForwardedRef<CropperImageElement>(ref);
 
-    useImperativeHandle(
-      ref,
-      () => elementRef.current as CropperImageElement,
-      [],
-    );
-
-    // Handle ready event
+    // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
     useEffect(() => {
-      const element = elementRef.current;
-      if (!element || !onReady) return;
+      const el = elementRef.current;
+      if (!el) return;
+      if (src !== undefined) el.src = src;
+      if (alt !== undefined) el.alt = alt;
+      if (crossOrigin !== undefined) el.crossorigin = crossOrigin;
+      if (initialCenterSize !== undefined)
+        el.initialCenterSize = initialCenterSize;
+      if (rotatable !== undefined) el.rotatable = rotatable;
+      if (scalable !== undefined) el.scalable = scalable;
+      if (skewable !== undefined) el.skewable = skewable;
+      if (translatable !== undefined) el.translatable = translatable;
+    }, [
+      src,
+      alt,
+      crossOrigin,
+      initialCenterSize,
+      rotatable,
+      scalable,
+      skewable,
+      translatable,
+    ]);
 
-      setTimeout(() => {
-        onReady(element);
-      }, 0);
+    // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
+    useEffect(() => {
+      const el = elementRef.current;
+      if (!el || !onReady) return;
+      el.$ready(() => onReady(el));
     }, [onReady]);
 
-    // Update props
-    useEffect(() => {
-      if (!elementRef.current) return;
-      const element = elementRef.current;
-
-      if (src !== undefined) element.src = src;
-      if (alt !== undefined) element.alt = alt;
-      if (crossOrigin !== undefined) element.crossorigin = crossOrigin;
-      if (rotatable !== undefined) element.rotatable = rotatable;
-      if (scalable !== undefined) element.scalable = scalable;
-      if (skewable !== undefined) element.skewable = skewable;
-      if (translatable !== undefined) element.translatable = translatable;
-    }, [src, alt, crossOrigin, rotatable, scalable, skewable, translatable]);
-
     return (
-      // @ts-expect-error
-      <cropper-image
-        ref={elementRef}
-        src={src}
-        alt={alt}
-        crossorigin={crossOrigin}
-        {...rest}
-      />
+      // @ts-expect-error web component
+      <cropper-image ref={elementRef} src={src} alt={alt} {...rest} />
     );
   },
 );
+
+CropperImage.displayName = 'CropperImage';

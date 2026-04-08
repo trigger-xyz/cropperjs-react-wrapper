@@ -4,9 +4,8 @@ import {
   forwardRef,
   type HTMLAttributes,
   useEffect,
-  useImperativeHandle,
-  useRef,
 } from 'react';
+import { useForwardedRef } from '../hooks';
 
 export interface CropperGridProps
   extends DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> {
@@ -19,29 +18,24 @@ export interface CropperGridProps
 
 export const CropperGrid = forwardRef<CropperGridElement, CropperGridProps>(
   ({ columns, rows, bordered, covered, themeColor, ...rest }, ref) => {
-    const elementRef = useRef<CropperGridElement>(null);
+    const elementRef = useForwardedRef<CropperGridElement>(ref);
 
-    useImperativeHandle(
-      ref,
-      () => elementRef.current as CropperGridElement,
-      [],
-    );
-
-    // Update props
+    // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
     useEffect(() => {
-      if (!elementRef.current) return;
-      const element = elementRef.current;
-
-      if (columns !== undefined) element.columns = columns;
-      if (rows !== undefined) element.rows = rows;
-      if (bordered !== undefined) element.bordered = bordered;
-      if (covered !== undefined) element.covered = covered;
-      if (themeColor !== undefined) element.themeColor = themeColor;
+      const el = elementRef.current;
+      if (!el) return;
+      if (columns !== undefined) el.columns = columns;
+      if (rows !== undefined) el.rows = rows;
+      if (bordered !== undefined) el.bordered = bordered;
+      if (covered !== undefined) el.covered = covered;
+      if (themeColor !== undefined) el.themeColor = themeColor;
     }, [columns, rows, bordered, covered, themeColor]);
 
     return (
-      // @ts-expect-error
+      // @ts-expect-error web component
       <cropper-grid ref={elementRef} {...rest} />
     );
   },
 );
+
+CropperGrid.displayName = 'CropperGrid';

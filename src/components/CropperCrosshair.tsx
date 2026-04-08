@@ -4,9 +4,8 @@ import {
   forwardRef,
   type HTMLAttributes,
   useEffect,
-  useImperativeHandle,
-  useRef,
 } from 'react';
+import { useForwardedRef } from '../hooks';
 
 export interface CropperCrosshairProps
   extends DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> {
@@ -18,25 +17,20 @@ export const CropperCrosshair = forwardRef<
   CropperCrosshairElement,
   CropperCrosshairProps
 >(({ centered, themeColor, ...rest }, ref) => {
-  const elementRef = useRef<CropperCrosshairElement>(null);
+  const elementRef = useForwardedRef<CropperCrosshairElement>(ref);
 
-  useImperativeHandle(
-    ref,
-    () => elementRef.current as CropperCrosshairElement,
-    [],
-  );
-
-  // Update props
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
   useEffect(() => {
-    if (!elementRef.current) return;
-    const element = elementRef.current;
-
-    if (centered !== undefined) element.centered = centered;
-    if (themeColor !== undefined) element.themeColor = themeColor;
+    const el = elementRef.current;
+    if (!el) return;
+    if (centered !== undefined) el.centered = centered;
+    if (themeColor !== undefined) el.themeColor = themeColor;
   }, [centered, themeColor]);
 
   return (
-    // @ts-expect-error
+    // @ts-expect-error web component
     <cropper-crosshair ref={elementRef} {...rest} />
   );
 });
+
+CropperCrosshair.displayName = 'CropperCrosshair';
