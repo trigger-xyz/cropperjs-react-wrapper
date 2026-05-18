@@ -32,7 +32,7 @@
   "scripts": {
     "prepublishOnly": "npm run build",
     "dev": "vite -c vite.demo.config.ts",
-    "build": "vite build",
+    "build": "vite build && rollup -c rollup.dts.config.mjs",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "vitest"
@@ -47,13 +47,14 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "jsdom": "^29.1.1",
+    "rollup": "^4.60.4",
+    "rollup-plugin-dts": "^6.4.1",
     "vite": "^8.0.13",
-    "vite-plugin-dts": "^5.0.0",
     "vitest": "^4.1.6"
   },
   "peerDependencies": {
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "dependencies": {
     "cropperjs": "^2.1.1"
