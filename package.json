@@ -4,7 +4,7 @@
   "description": "A modern, lightweight React wrapper for Cropper.js v2 with TypeScript support",
   "repository": {
     "type": "git",
-    "url": "https://github.com/trigger-xyz/cropperjs-react-wrapper.git"
+    "url": "git+https://github.com/trigger-xyz/cropperjs-react-wrapper.git"
   },
   "keywords": [
     "react",
