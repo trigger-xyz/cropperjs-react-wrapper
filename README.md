@@ -117,10 +117,18 @@ const App = () => {
 
 ### Commands
 
-- `npm run dev`: Start the development server (includes a demo app).
-- `npm run build`: Build the library.
+- `npm run dev`: Start the Vite demo app from `example/vite`.
+- `npm run dev:vite`: Start the Vite demo app.
+- `npm run dev:nextjs`: Build the package and start the Next.js fixture from `example/nextjs`.
+- `npm run build`: Build the library and assert that React JSX runtimes stay external.
+- `npm run build:examples`: Build the library, then build all example workspaces through Turbo.
 - `npm run test`: Run tests using Vitest.
 - `npm run lint`: Run linting using Biome.
+
+### Examples
+
+- `example/vite`: Interactive Vite demo for local wrapper development.
+- `example/nextjs`: Next.js App Router fixture for browser module evaluation and packaging regressions.
 
 ## License
 

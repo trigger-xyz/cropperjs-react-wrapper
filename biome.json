@@ -15,7 +15,13 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["src/**", "example/**", "*.ts", "*.json"]
+    "includes": [
+      "src/**",
+      "example/**",
+      "*.ts",
+      "*.json",
+      "!example/nextjs/next-env.d.ts"
+    ]
   },
   "formatter": {
     "enabled": true,

@@ -1,0 +1,15 @@
+{
+  "name": "@cropperjs-react-wrapper/example-vite",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite -c ../../vite.demo.config.ts",
+    "build": "vite build -c ../../vite.demo.config.ts"
+  },
+  "dependencies": {
+    "cropperjs": "^2.1.1",
+    "cropperjs-react-wrapper": "file:../..",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
