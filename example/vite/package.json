@@ -9,7 +9,7 @@
   "dependencies": {
     "cropperjs": "^2.1.1",
     "cropperjs-react-wrapper": "file:../..",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   }
 }
