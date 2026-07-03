@@ -172,7 +172,27 @@ export const CropperSelection = forwardRef<
 
     return (
       // @ts-expect-error web component
-      <cropper-selection ref={elementRef} {...rest}>
+      <cropper-selection
+        ref={elementRef}
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        aspect-ratio={aspectRatio}
+        initial-aspect-ratio={initialAspectRatio}
+        initial-coverage={initialCoverage}
+        movable={movable}
+        resizable={resizable}
+        zoomable={zoomable}
+        multiple={multiple}
+        keyboard={keyboard}
+        outlined={outlined}
+        precise={precise}
+        dynamic={dynamic}
+        active={active}
+        theme-color={themeColor}
+        {...rest}
+      >
         {children}
         {/* @ts-ignore closing tag */}
       </cropper-selection>

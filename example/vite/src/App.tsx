@@ -372,15 +372,21 @@ const App = () => {
                     <label>
                       Aspect Ratio:
                       <select
-                        value={aspectRatio}
-                        onChange={(e) => setAspectRatio(Number(e.target.value))}
+                        value={aspectRatio ?? 'free'}
+                        onChange={(e) =>
+                          setAspectRatio(
+                            e.target.value === 'free'
+                              ? undefined
+                              : Number(e.target.value),
+                          )
+                        }
                       >
                         <option value={16 / 9}>16:9 (Landscape)</option>
                         <option value={4 / 3}>4:3</option>
                         <option value={1}>1:1 (Square)</option>
                         <option value={3 / 4}>3:4 (Portrait)</option>
                         <option value={9 / 16}>9:16 (Story)</option>
-                        <option value={NaN}>Free</option>
+                        <option value="free">Free</option>
                       </select>
                     </label>
                     <label>

@@ -230,6 +230,43 @@ describe('CropperSelection', () => {
     });
   });
 
+  it('keeps multiple fixed selections initialized from props', async () => {
+    const { container } = render(
+      <CropperCanvas>
+        {[
+          { id: 'selection-a', x: 10, y: 20 },
+          { id: 'selection-b', x: 40, y: 50 },
+          { id: 'selection-c', x: 70, y: 80 },
+        ].map((selection) => (
+          <CropperSelection
+            key={selection.id}
+            id={selection.id}
+            x={selection.x}
+            y={selection.y}
+            width={100}
+            height={120}
+            movable
+            resizable
+            zoomable
+            multiple
+            keyboard
+            outlined
+          />
+        ))}
+      </CropperCanvas>,
+    );
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('cropper-selection')).toHaveLength(3);
+    });
+
+    expect(
+      Array.from(container.querySelectorAll('cropper-selection')).map(
+        (selection) => selection.id,
+      ),
+    ).toEqual(['selection-a', 'selection-b', 'selection-c']);
+  });
+
   it('calls event handlers', async () => {
     const onChange = vi.fn();
     const onActionStart = vi.fn();
