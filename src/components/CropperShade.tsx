@@ -9,6 +9,7 @@ import { useForwardedRef } from '../hooks';
 
 export interface CropperShadeProps
   extends DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> {
+  slottable?: boolean;
   themeColor?: string;
 }
 

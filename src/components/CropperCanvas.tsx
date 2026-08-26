@@ -7,6 +7,12 @@ import {
   type HTMLAttributes,
   useEffect,
 } from 'react';
+import type {
+  CropperActionEndEvent,
+  CropperActionEvent,
+  CropperActionMoveEvent,
+  CropperActionStartEvent,
+} from '../events';
 import { useCustomEvents, useForwardedRef } from '../hooks';
 
 export interface CropperCanvasProps
@@ -17,11 +23,12 @@ export interface CropperCanvasProps
   background?: boolean;
   disabled?: boolean;
   scaleStep?: number;
+  slottable?: boolean;
   themeColor?: string;
-  onAction?: (event: CustomEvent) => void;
-  onActionStart?: (event: CustomEvent) => void;
-  onActionMove?: (event: CustomEvent) => void;
-  onActionEnd?: (event: CustomEvent) => void;
+  onAction?: (event: CropperActionEvent) => void;
+  onActionStart?: (event: CropperActionStartEvent) => void;
+  onActionMove?: (event: CropperActionMoveEvent) => void;
+  onActionEnd?: (event: CropperActionEndEvent) => void;
   onChange?: (event: CustomEvent) => void;
   onLoad?: (event: CustomEvent) => void;
   onError?: (event: CustomEvent) => void;
@@ -63,8 +70,11 @@ export const CropperCanvas = forwardRef<
       if (themeColor !== undefined) el.themeColor = themeColor;
     }, [background, disabled, scaleStep, themeColor]);
 
+    // Capture action events before Cropper.js' own target listeners so calling
+    // preventDefault() can stop the built-in image and selection behavior.
+    useCustomEvents(elementRef, { action: onAction }, { capture: true });
+
     useCustomEvents(elementRef, {
-      action: onAction,
       actionstart: onActionStart,
       actionmove: onActionMove,
       actionend: onActionEnd,

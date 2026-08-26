@@ -15,7 +15,9 @@ export default function CropperDemo() {
       <CropperImage
         src="/spaceship.jpeg"
         alt="Spaceship near a ringed planet"
-        initialCenterSize="contain"
+        initialFit="contain"
+        maxFit="none"
+        minFit="contain"
         rotatable
         scalable
         translatable

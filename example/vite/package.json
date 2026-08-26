@@ -7,9 +7,9 @@
     "build": "vite build -c ../../vite.demo.config.ts"
   },
   "dependencies": {
-    "cropperjs": "^2.1.1",
+    "cropperjs": "^2.2.0",
     "cropperjs-react-wrapper": "file:../..",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }

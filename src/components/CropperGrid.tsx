@@ -13,6 +13,7 @@ export interface CropperGridProps
   rows?: number;
   bordered?: boolean;
   covered?: boolean;
+  slottable?: boolean;
   themeColor?: string;
 }
 

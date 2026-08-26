@@ -28,5 +28,6 @@
     }
   },
   "include": ["src", "example", "src/types.d.ts"],
+  "exclude": ["example/react18"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

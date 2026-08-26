@@ -9,6 +9,12 @@ import {
   type HTMLAttributes,
   useEffect,
 } from 'react';
+import type {
+  CropperActionEndEvent,
+  CropperActionEvent,
+  CropperActionMoveEvent,
+  CropperActionStartEvent,
+} from '../events';
 import { useCustomEvents, useForwardedRef } from '../hooks';
 
 export interface CropperSelectionProps
@@ -33,11 +39,12 @@ export interface CropperSelectionProps
   dynamic?: boolean;
   active?: boolean;
   bounded?: boolean;
+  slottable?: boolean;
   themeColor?: string;
-  onAction?: (event: CustomEvent) => void;
-  onActionStart?: (event: CustomEvent) => void;
-  onActionMove?: (event: CustomEvent) => void;
-  onActionEnd?: (event: CustomEvent) => void;
+  onAction?: (event: CropperActionEvent) => void;
+  onActionStart?: (event: CropperActionStartEvent) => void;
+  onActionMove?: (event: CropperActionMoveEvent) => void;
+  onActionEnd?: (event: CropperActionEndEvent) => void;
   onChange?: (event: CustomEvent) => void;
 }
 

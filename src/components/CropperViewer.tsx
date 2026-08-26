@@ -11,6 +11,7 @@ export interface CropperViewerProps
   extends DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> {
   resize?: 'both' | 'horizontal' | 'vertical' | 'none';
   selection?: string;
+  slottable?: boolean;
   themeColor?: string;
 }
 

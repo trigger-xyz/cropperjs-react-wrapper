@@ -11,6 +11,7 @@ import type {
 } from 'cropperjs';
 import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import type { CropperActionEvent } from '../events';
 import { CropperCanvas } from './CropperCanvas';
 import { CropperCrosshair } from './CropperCrosshair';
 import { CropperGrid } from './CropperGrid';
@@ -91,6 +92,62 @@ describe('CropperCanvas', () => {
     });
   });
 
+  it('allows action handlers to prevent Cropper.js default behavior', () => {
+    const onAction = vi.fn((event: CropperActionEvent) => {
+      expect(event.detail.action).toBe('scale');
+      expect(event.detail.scale).toBe(0.1);
+      expect(event.detail.centerX).toBe(50);
+      expect(event.detail.centerY).toBe(40);
+      event.preventDefault();
+    });
+    const { container } = render(<CropperCanvas onAction={onAction} />);
+    const el = container.querySelector('cropper-canvas') as HTMLElement;
+    const event: CropperActionEvent = new CustomEvent('action', {
+      cancelable: true,
+      detail: {
+        action: 'scale',
+        relatedEvent: new WheelEvent('wheel'),
+        scale: 0.1,
+        centerX: 50,
+        centerY: 40,
+      },
+    });
+
+    expect(el.dispatchEvent(event)).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
+    expect(onAction).toHaveBeenCalledWith(event);
+  });
+
+  it('runs preventable action handlers before Cropper.js element handlers', () => {
+    const onAction = vi.fn((event: CropperActionEvent) => {
+      event.preventDefault();
+    });
+    const { container } = render(
+      <CropperCanvas onAction={onAction}>
+        <CropperImage />
+      </CropperCanvas>,
+    );
+    const canvas = container.querySelector('cropper-canvas') as HTMLElement;
+    const image = container.querySelector(
+      'cropper-image',
+    ) as CropperImageElement;
+    const zoom = vi.spyOn(image, '$zoom');
+    const event = new CustomEvent('action', {
+      bubbles: true,
+      cancelable: true,
+      detail: {
+        action: 'scale',
+        scale: 0.1,
+      },
+    }) as CropperActionEvent;
+
+    canvas.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(onAction).toHaveBeenCalledWith(event);
+    expect(zoom).not.toHaveBeenCalled();
+  });
+
   it('updates properties when props change', async () => {
     const { container, rerender } = render(
       <CropperCanvas background={false} themeColor="blue" />,
@@ -130,18 +187,99 @@ describe('CropperImage', () => {
     });
   });
 
+  it('sets and removes native image properties and attributes', async () => {
+    const { container, rerender } = render(
+      <CropperImage
+        src="test.jpg"
+        alt="Responsive image"
+        crossOrigin="anonymous"
+        decoding="async"
+        elementTiming="cropper-hero"
+        fetchPriority="high"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        sizes="100vw"
+        srcSet="small.jpg 480w, large.jpg 960w"
+      />,
+    );
+    const el = container.querySelector('cropper-image') as CropperImageElement;
+
+    await waitFor(() => {
+      expect(el.crossorigin).toBe('anonymous');
+      expect(el.decoding).toBe('async');
+      expect(el.elementtiming).toBe('cropper-hero');
+      expect(el.fetchpriority).toBe('high');
+      expect(el.loading).toBe('lazy');
+      expect(el.referrerpolicy).toBe('no-referrer');
+      expect(el.sizes).toBe('100vw');
+      expect(el.srcset).toBe('small.jpg 480w, large.jpg 960w');
+      expect(el.$image.getAttribute('loading')).toBe('lazy');
+      expect(el.$image.getAttribute('srcset')).toBe(
+        'small.jpg 480w, large.jpg 960w',
+      );
+    });
+
+    rerender(<CropperImage src="test.jpg" />);
+
+    await waitFor(() => {
+      for (const attribute of [
+        'alt',
+        'crossorigin',
+        'decoding',
+        'elementtiming',
+        'fetchpriority',
+        'loading',
+        'referrerpolicy',
+        'sizes',
+        'srcset',
+      ]) {
+        expect(el).not.toHaveAttribute(attribute);
+        expect(el.$image).not.toHaveAttribute(attribute);
+      }
+    });
+  });
+
   it('forwards ref', () => {
     const ref = createRef<CropperImageElement>();
     const { container } = render(<CropperImage ref={ref} />);
     expect(ref.current).toBe(container.querySelector('cropper-image'));
   });
 
-  it('sets initialCenterSize prop', async () => {
+  it('keeps supporting the deprecated initialCenterSize prop', async () => {
     const { container } = render(<CropperImage initialCenterSize="cover" />);
     const el = container.querySelector('cropper-image') as CropperImageElement;
     await waitFor(() => {
       expect(el.initialCenterSize).toBe('cover');
     });
+  });
+
+  it('sets Cropper.js 2.2 image fit props before and after mount', async () => {
+    const { container } = render(
+      <CropperImage initialFit="fill" maxFit="none" minFit="scale-down" />,
+    );
+    const el = container.querySelector('cropper-image') as CropperImageElement;
+
+    expect(el).toHaveAttribute('initial-fit', 'fill');
+    expect(el).toHaveAttribute('max-fit', 'none');
+    expect(el).toHaveAttribute('min-fit', 'scale-down');
+    await waitFor(() => {
+      expect(el.initialFit).toBe('fill');
+      expect(el.maxFit).toBe('none');
+      expect(el.minFit).toBe('scale-down');
+    });
+  });
+
+  it('calls the new cancelable image change handler', () => {
+    const onChange = vi.fn((event: CustomEvent) => event.preventDefault());
+    const { container } = render(<CropperImage onChange={onChange} />);
+    const el = container.querySelector('cropper-image') as HTMLElement;
+    const detail = { x: 10, y: 20, width: 300, height: 200 };
+    const event = new CustomEvent('change', { cancelable: true, detail });
+
+    expect(el.dispatchEvent(event)).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
+    expect(onChange).toHaveBeenCalledWith(event);
+    expect(onChange.mock.calls[0]?.[0].detail).toEqual(detail);
   });
 
   it('sets transform capability props', async () => {
@@ -439,5 +577,57 @@ describe('CropperViewer', () => {
     const ref = createRef<CropperViewerElement>();
     const { container } = render(<CropperViewer ref={ref} />);
     expect(ref.current).toBe(container.querySelector('cropper-viewer'));
+  });
+});
+
+describe('shared CropperElement props', () => {
+  const selectors = [
+    'cropper-canvas',
+    'cropper-image',
+    'cropper-selection',
+    'cropper-shade',
+    'cropper-handle',
+    'cropper-grid',
+    'cropper-crosshair',
+    'cropper-viewer',
+  ];
+
+  const renderElements = (slottable: boolean) => (
+    <>
+      <CropperCanvas slottable={slottable} />
+      <CropperImage slottable={slottable} />
+      <CropperSelection slottable={slottable} />
+      <CropperShade slottable={slottable} />
+      <CropperHandle action="none" slottable={slottable} />
+      <CropperGrid slottable={slottable} />
+      <CropperCrosshair slottable={slottable} />
+      <CropperViewer slottable={slottable} />
+    </>
+  );
+
+  it('sets and updates slottable on every wrapper', async () => {
+    const { container, rerender } = render(renderElements(true));
+
+    await waitFor(() => {
+      for (const selector of selectors) {
+        const element = container.querySelector(selector) as HTMLElement & {
+          slottable: boolean;
+        };
+        expect(element.slottable).toBe(true);
+        expect(element).toHaveAttribute('slottable');
+      }
+    });
+
+    rerender(renderElements(false));
+
+    await waitFor(() => {
+      for (const selector of selectors) {
+        const element = container.querySelector(selector) as HTMLElement & {
+          slottable: boolean;
+        };
+        expect(element.slottable).toBe(false);
+        expect(element).not.toHaveAttribute('slottable');
+      }
+    });
   });
 });

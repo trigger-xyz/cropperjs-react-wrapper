@@ -11,6 +11,7 @@ export interface CropperHandleProps
   extends DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> {
   action: string;
   plain?: boolean;
+  slottable?: boolean;
   themeColor?: string;
 }
 

@@ -10,6 +10,7 @@ import { useForwardedRef } from '../hooks';
 export interface CropperCrosshairProps
   extends DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> {
   centered?: boolean;
+  slottable?: boolean;
   themeColor?: string;
 }
 

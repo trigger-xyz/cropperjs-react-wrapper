@@ -4,17 +4,30 @@ import type {
   CropperSelection as CropperSelectionElement,
 } from 'cropperjs';
 import {
+  type CropperActionEvent,
   CropperCanvas,
   CropperCrosshair,
   CropperGrid,
   CropperHandle,
   CropperImage,
+  type CropperImageChangeEvent,
+  type CropperImageFit,
   CropperSelection,
   CropperShade,
 } from 'cropperjs-react-wrapper';
 import { useEffect, useRef, useState } from 'react';
 import image1 from '../assets/image1.png';
 import image2 from '../assets/image2.png';
+
+const FIT_OPTIONS: CropperImageFit[] = [
+  'contain',
+  'cover',
+  'fill',
+  'scale-down',
+  'none',
+];
+
+type FitConstraint = CropperImageFit | '';
 
 const App = () => {
   const cropperRef = useRef<CropperCanvasElement>(null);
@@ -34,6 +47,11 @@ const App = () => {
   // Image transformation controls (track flip state)
   const [scaleX, setScaleX] = useState(1);
   const [scaleY, setScaleY] = useState(1);
+  const [initialFit, setInitialFit] = useState<CropperImageFit>('contain');
+  const [maxFit, setMaxFit] = useState<FitConstraint>('');
+  const [minFit, setMinFit] = useState<FitConstraint>('');
+  const [lastCenterFit, setLastCenterFit] =
+    useState<CropperImageFit>('contain');
 
   // Selection controls
   const [showShade, setShowShade] = useState(false);
@@ -49,6 +67,26 @@ const App = () => {
   const [gridRows, setGridRows] = useState(3);
   const [gridColumns, setGridColumns] = useState(3);
 
+  // Event controls and diagnostics
+  const [preventCanvasActions, setPreventCanvasActions] = useState(false);
+  const [preventImageChanges, setPreventImageChanges] = useState(false);
+  const [actionEvent, setActionEvent] = useState<{
+    action: string;
+    scale?: number;
+    rotate?: number;
+    centerX?: number;
+    centerY?: number;
+    prevented: boolean;
+  } | null>(null);
+  const [imageChangeEvent, setImageChangeEvent] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    prevented: boolean;
+  } | null>(null);
+  const [imageChangeCount, setImageChangeCount] = useState(0);
+
   // Export controls
   const [exportFormat, setExportFormat] = useState<'png' | 'jpeg' | 'webp'>(
     'png',
@@ -63,27 +101,31 @@ const App = () => {
 
   // UI state
   const [activeTab, setActiveTab] = useState<
-    'basic' | 'transform' | 'advanced' | 'actions'
+    'basic' | 'transform' | 'behavior' | 'events' | 'export'
   >('basic');
 
   const updateLivePreview = async () => {
     const selection = selectionRef.current;
-    if (selection) {
+    if (selection && selection.width > 0 && selection.height > 0) {
       const canvas = await selection.$toCanvas();
       setLivePreview(canvas.toDataURL());
+    } else {
+      setLivePreview(undefined);
     }
   };
 
   const onCrop = () => {
     updateLivePreview();
     const selection = selectionRef.current;
-    if (selection) {
+    if (selection && selection.width > 0 && selection.height > 0) {
       setCropData({
         x: Math.round(selection.x),
         y: Math.round(selection.y),
         width: Math.round(selection.width),
         height: Math.round(selection.height),
       });
+    } else {
+      setCropData(null);
     }
   };
 
@@ -132,6 +174,63 @@ const App = () => {
       image.$zoom(delta);
     }
   };
+
+  const handleCenter = (fit: CropperImageFit) => {
+    imageRef.current?.$resetTransform().$center(fit);
+    setScaleX(1);
+    setScaleY(1);
+    setLastCenterFit(fit);
+  };
+
+  const resetFlipState = () => {
+    setScaleX(1);
+    setScaleY(1);
+  };
+
+  const handleInitialFitChange = (fit: CropperImageFit) => {
+    setInitialFit(fit);
+    setLastCenterFit(fit);
+    resetFlipState();
+  };
+
+  const handleMinFitChange = (fit: FitConstraint) => {
+    setMinFit(fit);
+    resetFlipState();
+  };
+
+  const handleMaxFitChange = (fit: FitConstraint) => {
+    setMaxFit(fit);
+    resetFlipState();
+  };
+
+  const handleImageChange = (event: CropperImageChangeEvent) => {
+    if (preventImageChanges) {
+      event.preventDefault();
+    }
+    setImageChangeCount((count) => count + 1);
+    setImageChangeEvent({
+      ...event.detail,
+      prevented: preventImageChanges,
+    });
+  };
+
+  const handleCanvasAction = (event: CropperActionEvent) => {
+    if (preventCanvasActions) {
+      event.preventDefault();
+    }
+    const { action, scale, rotate, centerX, centerY } = event.detail;
+    setActionEvent({
+      action,
+      scale,
+      rotate,
+      centerX,
+      centerY,
+      prevented: preventCanvasActions,
+    });
+  };
+
+  const formatEventNumber = (value: number | undefined) =>
+    value === undefined ? '—' : value.toFixed(2);
 
   useEffect(() => {
     const image = imageRef.current;
@@ -192,20 +291,26 @@ const App = () => {
         <div className="cropper-wrapper">
           <div className="cropper-container">
             <CropperCanvas
-              style={{ height: '500px' }}
+              style={{ height: '400px' }}
               ref={cropperRef}
               background={canvasBackground}
               disabled={canvasDisabled}
               themeColor={themeColor}
+              onAction={handleCanvasAction}
             >
               <CropperImage
+                key={`${initialFit}:${minFit}:${maxFit}`}
                 ref={imageRef}
                 src={imgSrc}
                 alt="Picture"
+                initialFit={initialFit}
+                maxFit={maxFit}
+                minFit={minFit}
                 rotatable={true}
                 scalable={true}
                 skewable={true}
                 translatable={true}
+                onChange={handleImageChange}
               />
               {showShade && <CropperShade themeColor={themeColor} />}
               <CropperHandle action="select" plain />
@@ -268,7 +373,11 @@ const App = () => {
                   Download Image
                 </button>
               </div>
-            ) : null}
+            ) : (
+              <p className="preview-placeholder">
+                Create or resize a selection to see the result.
+              </p>
+            )}
             {cropData && (
               <div className="crop-data">
                 <div>X: {cropData.x}</div>
@@ -298,17 +407,24 @@ const App = () => {
             </button>
             <button
               type="button"
-              className={activeTab === 'advanced' ? 'tab active' : 'tab'}
-              onClick={() => setActiveTab('advanced')}
+              className={activeTab === 'behavior' ? 'tab active' : 'tab'}
+              onClick={() => setActiveTab('behavior')}
             >
-              Advanced
+              Behavior
             </button>
             <button
               type="button"
-              className={activeTab === 'actions' ? 'tab active' : 'tab'}
-              onClick={() => setActiveTab('actions')}
+              className={activeTab === 'events' ? 'tab active' : 'tab'}
+              onClick={() => setActiveTab('events')}
             >
-              Actions
+              Events
+            </button>
+            <button
+              type="button"
+              className={activeTab === 'export' ? 'tab active' : 'tab'}
+              onClick={() => setActiveTab('export')}
+            >
+              Export
             </button>
           </div>
 
@@ -401,22 +517,26 @@ const App = () => {
                 </div>
 
                 <div className="control-section">
-                  <h3>Presets</h3>
+                  <h3>Selection Presets</h3>
+                  <p className="control-description">
+                    Apply a common aspect ratio to the crop selection. These
+                    presets change the selection shape, not the displayed image.
+                  </p>
                   <div className="control-group">
                     <button
                       type="button"
                       onClick={() => applyPreset('profile')}
                     >
-                      Profile Picture (1:1)
+                      Square Selection (1:1)
                     </button>
                     <button type="button" onClick={() => applyPreset('banner')}>
-                      Banner (16:9)
+                      Banner Selection (16:9)
                     </button>
                     <button
                       type="button"
                       onClick={() => applyPreset('thumbnail')}
                     >
-                      Thumbnail (4:3)
+                      Thumbnail Selection (4:3)
                     </button>
                   </div>
                 </div>
@@ -425,6 +545,83 @@ const App = () => {
 
             {activeTab === 'transform' && (
               <>
+                <div className="control-section">
+                  <h3>Fit &amp; Center</h3>
+                  <p className="control-description">
+                    Choose the automatic image fit and optional zoom limits. The
+                    three settings are initialized together; center commands
+                    apply immediately and respect the active limits.
+                  </p>
+                  <div className="control-group">
+                    <label>
+                      Initial fit:
+                      <select
+                        value={initialFit}
+                        onChange={(event) =>
+                          handleInitialFitChange(
+                            event.target.value as CropperImageFit,
+                          )
+                        }
+                      >
+                        {FIT_OPTIONS.map((fit) => (
+                          <option key={fit} value={fit}>
+                            {fit}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Minimum fit:
+                      <select
+                        value={minFit}
+                        onChange={(event) =>
+                          handleMinFitChange(
+                            event.target.value as FitConstraint,
+                          )
+                        }
+                      >
+                        <option value="">Unrestricted</option>
+                        {FIT_OPTIONS.map((fit) => (
+                          <option key={fit} value={fit}>
+                            {fit}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Maximum fit:
+                      <select
+                        value={maxFit}
+                        onChange={(event) =>
+                          handleMaxFitChange(
+                            event.target.value as FitConstraint,
+                          )
+                        }
+                      >
+                        <option value="">Unrestricted</option>
+                        {FIT_OPTIONS.map((fit) => (
+                          <option key={fit} value={fit}>
+                            {fit}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="control-group fit-buttons">
+                    {FIT_OPTIONS.map((fit) => (
+                      <button
+                        key={fit}
+                        type="button"
+                        className={lastCenterFit === fit ? 'selected' : ''}
+                        aria-pressed={lastCenterFit === fit}
+                        onClick={() => handleCenter(fit)}
+                      >
+                        Center: {fit}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="control-section">
                   <h3>Rotation</h3>
                   <div className="control-group">
@@ -469,7 +666,7 @@ const App = () => {
               </>
             )}
 
-            {activeTab === 'advanced' && (
+            {activeTab === 'behavior' && (
               <>
                 <div className="control-section">
                   <h3>Canvas Options</h3>
@@ -548,7 +745,120 @@ const App = () => {
                     </label>
                   </div>
                 </div>
+              </>
+            )}
 
+            {activeTab === 'events' && (
+              <div className="event-sections">
+                <div className="control-section">
+                  <h3>Canvas Action Event</h3>
+                  <p className="control-description">
+                    Interact with the cropper to inspect action data.
+                    Two-pointer scale and rotate gestures also report their
+                    center point.
+                  </p>
+                  <div className="control-group">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={preventCanvasActions}
+                        onChange={(event) =>
+                          setPreventCanvasActions(event.target.checked)
+                        }
+                      />
+                      Prevent default canvas actions
+                    </label>
+                  </div>
+                  <dl className="event-readout">
+                    <div>
+                      <dt>Action</dt>
+                      <dd>{actionEvent?.action ?? 'Waiting…'}</dd>
+                    </div>
+                    <div>
+                      <dt>Scale</dt>
+                      <dd>{formatEventNumber(actionEvent?.scale)}</dd>
+                    </div>
+                    <div>
+                      <dt>Rotation</dt>
+                      <dd>{formatEventNumber(actionEvent?.rotate)} rad</dd>
+                    </div>
+                    <div>
+                      <dt>Center X</dt>
+                      <dd>{formatEventNumber(actionEvent?.centerX)}</dd>
+                    </div>
+                    <div>
+                      <dt>Center Y</dt>
+                      <dd>{formatEventNumber(actionEvent?.centerY)}</dd>
+                    </div>
+                    <div>
+                      <dt>Result</dt>
+                      <dd>
+                        {actionEvent
+                          ? actionEvent.prevented
+                            ? 'Prevented'
+                            : 'Applied'
+                          : '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="control-section">
+                  <h3>Image Change Event</h3>
+                  <p className="control-description">
+                    Every proposed image transform reports its next rectangle.
+                    Preventing the event keeps the current transform unchanged.
+                  </p>
+                  <div className="control-group">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={preventImageChanges}
+                        onChange={(event) =>
+                          setPreventImageChanges(event.target.checked)
+                        }
+                      />
+                      Prevent image changes
+                    </label>
+                  </div>
+                  <dl className="event-readout">
+                    <div>
+                      <dt>Events</dt>
+                      <dd>{imageChangeCount}</dd>
+                    </div>
+                    <div>
+                      <dt>X</dt>
+                      <dd>{formatEventNumber(imageChangeEvent?.x)}</dd>
+                    </div>
+                    <div>
+                      <dt>Y</dt>
+                      <dd>{formatEventNumber(imageChangeEvent?.y)}</dd>
+                    </div>
+                    <div>
+                      <dt>Width</dt>
+                      <dd>{formatEventNumber(imageChangeEvent?.width)}</dd>
+                    </div>
+                    <div>
+                      <dt>Height</dt>
+                      <dd>{formatEventNumber(imageChangeEvent?.height)}</dd>
+                    </div>
+                    <div>
+                      <dt>Result</dt>
+                      <dd>
+                        {imageChangeEvent
+                          ? imageChangeEvent.prevented
+                            ? 'Prevented'
+                            : 'Applied'
+                          : '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'export' && (
+              <>
                 <div className="control-section">
                   <h3>Export Options</h3>
                   <div className="control-group">
@@ -584,25 +894,23 @@ const App = () => {
                     )}
                   </div>
                 </div>
-              </>
-            )}
 
-            {activeTab === 'actions' && (
-              <div className="control-section">
-                <h3>Actions</h3>
-                <div className="control-group">
-                  <button type="button" onClick={onCrop}>
-                    Log Data (Console)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleGetResult}
-                    className="primary"
-                  >
-                    Crop Image
-                  </button>
+                <div className="control-section">
+                  <h3>Generate Result</h3>
+                  <div className="control-group">
+                    <button type="button" onClick={onCrop}>
+                      Refresh Crop Data
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGetResult}
+                      className="primary"
+                    >
+                      Crop Image
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>

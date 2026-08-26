@@ -6,4 +6,5 @@ export * from './components/CropperImage';
 export * from './components/CropperSelection';
 export * from './components/CropperShade';
 export * from './components/CropperViewer';
+export * from './events';
 export { useCustomEvents, useForwardedRef } from './hooks';

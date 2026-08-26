@@ -20,9 +20,9 @@ body {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: auto;
-  padding: 20px;
+  padding: 6px 12px 12px;
 }
 
 .card {
@@ -31,13 +31,13 @@ body {
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  padding: 32px;
+  padding: 12px 20px 20px;
 }
 
 h1 {
   margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 1.8rem;
+  margin-bottom: 12px;
+  font-size: 1.3rem;
   font-weight: 700;
   text-align: center;
   color: #111827;
@@ -59,8 +59,8 @@ h3 {
 
 .cropper-wrapper {
   display: flex;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: 18px;
+  margin-bottom: 8px;
   align-items: flex-start;
 }
 
@@ -89,9 +89,9 @@ h3 {
 
 /* Live Preview */
 .live-preview-section {
-  width: 300px;
+  width: 240px;
   flex-shrink: 0;
-  padding: 20px;
+  padding: 16px;
   background: var(--secondary-bg);
   border-radius: 8px;
   text-align: center;
@@ -100,25 +100,33 @@ h3 {
 
 .live-preview-image {
   max-width: 100%;
-  max-height: 200px;
+  max-height: 160px;
   border-radius: 6px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border-color);
 }
 
+.preview-placeholder {
+  margin: 8px 0;
+  color: #6b7280;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 /* Tabs */
 .tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 24px;
+  gap: 2px;
+  margin-bottom: 14px;
   border-bottom: 2px solid var(--border-color);
 }
 
 .tab {
+  flex: 1;
   background: transparent;
   color: #6b7280;
   border: none;
-  padding: 12px 24px;
+  padding: 8px 12px;
   border-radius: 0;
   font-weight: 500;
   cursor: pointer;
@@ -142,12 +150,12 @@ h3 {
 .controls {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .control-section {
-  padding: 20px;
+  padding: 8px 12px 8px 12px;
   background: var(--secondary-bg);
   border-radius: 8px;
   border: 1px solid var(--border-color);
@@ -163,6 +171,13 @@ h3 {
 
 .control-group:last-child {
   margin-bottom: 0;
+}
+
+.control-description {
+  margin: -4px 0 12px;
+  color: #6b7280;
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 
 .control-group label {
@@ -241,6 +256,53 @@ button.primary:hover {
   background-color: #059669;
 }
 
+button.selected {
+  background-color: #1d4ed8;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.65);
+}
+
+.fit-buttons button {
+  flex: 1 1 130px;
+}
+
+.event-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.event-readout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.event-readout div {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: white;
+}
+
+.event-readout dt {
+  margin-bottom: 2px;
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.event-readout dd {
+  margin: 0;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Result Section */
 .result-section {
   margin-top: 32px;
@@ -261,8 +323,8 @@ button.primary:hover {
 }
 
 .param-section {
-  margin-top: 32px;
-  padding: 20px;
+  margin-top: 12px;
+  padding: 4px;
   background: var(--secondary-bg);
   border-radius: 8px;
   border-left: 4px solid var(--secondary-color);
@@ -308,16 +370,16 @@ kbd {
 /* Responsive */
 @media (max-width: 768px) {
   .container {
-    padding: 12px;
-    margin: 20px auto;
+    padding: 4px 8px 8px;
+    margin: 4px auto 12px;
   }
 
   .card {
-    padding: 20px;
+    padding: 10px 16px 16px;
   }
 
   h1 {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
   }
 
   .tabs {
@@ -325,8 +387,8 @@ kbd {
   }
 
   .tab {
-    padding: 10px 16px;
-    font-size: 0.9rem;
+    padding: 7px 12px;
+    font-size: 0.85rem;
   }
 
   .control-group {
@@ -336,6 +398,18 @@ kbd {
 
   .control-group label {
     width: 100%;
+  }
+
+  .fit-buttons {
+    flex-direction: row;
+  }
+
+  .event-sections {
+    grid-template-columns: 1fr;
+  }
+
+  .event-readout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .cropper-wrapper {

@@ -10,11 +10,13 @@ type EventHandler = (event: CustomEvent) => void;
 export function useCustomEvents(
   elementRef: RefObject<HTMLElement | null>,
   events: Record<string, EventHandler | undefined>,
+  options?: AddEventListenerOptions,
 ): void {
   const handlersRef = useRef(events);
   handlersRef.current = events;
 
   const eventNamesRef = useRef(Object.keys(events));
+  const optionsRef = useRef(options);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: handlers tracked via ref, event names are stable per component
   useLayoutEffect(() => {
@@ -27,12 +29,12 @@ export function useCustomEvents(
     };
 
     for (const name of names) {
-      el.addEventListener(name, listener);
+      el.addEventListener(name, listener, optionsRef.current);
     }
 
     return () => {
       for (const name of names) {
-        el.removeEventListener(name, listener);
+        el.removeEventListener(name, listener, optionsRef.current);
       }
     };
   }, []);
