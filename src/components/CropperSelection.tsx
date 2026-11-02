@@ -17,6 +17,16 @@ import type {
 } from '../events';
 import { useCustomEvents, useForwardedRef } from '../hooks';
 
+export interface CropperSelectionChangeEventDetail {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export type CropperSelectionChangeEvent =
+  CustomEvent<CropperSelectionChangeEventDetail>;
+
 export interface CropperSelectionProps
   extends Omit<
     DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>,
@@ -29,6 +39,14 @@ export interface CropperSelectionProps
   aspectRatio?: number;
   initialAspectRatio?: number;
   initialCoverage?: number;
+  /** CSS border radius applied to the selection and exported canvas. */
+  borderRadius?: string;
+  /** Maximum edge distances from the parent, using CSS inset syntax. */
+  maxInset?: string;
+  /** Minimum edge distances from the parent, using CSS inset syntax. */
+  minInset?: string;
+  resizeAroundCenter?: boolean;
+  zoomAroundCenter?: boolean;
   movable?: boolean;
   resizable?: boolean;
   zoomable?: boolean;
@@ -45,7 +63,7 @@ export interface CropperSelectionProps
   onActionStart?: (event: CropperActionStartEvent) => void;
   onActionMove?: (event: CropperActionMoveEvent) => void;
   onActionEnd?: (event: CropperActionEndEvent) => void;
-  onChange?: (event: CustomEvent) => void;
+  onChange?: (event: CropperSelectionChangeEvent) => void;
 }
 
 export const CropperSelection = forwardRef<
@@ -61,6 +79,11 @@ export const CropperSelection = forwardRef<
       aspectRatio,
       initialAspectRatio,
       initialCoverage,
+      borderRadius = '',
+      maxInset = 'auto',
+      minInset = 'auto',
+      resizeAroundCenter = false,
+      zoomAroundCenter = false,
       movable,
       resizable,
       zoomable,
@@ -126,20 +149,41 @@ export const CropperSelection = forwardRef<
       themeColor,
     ]);
 
+    // Changing appearance or behavior must not reapply the initial geometry.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
+    useEffect(() => {
+      const el = elementRef.current;
+      if (!el) return;
+      el.borderRadius = borderRadius;
+      el.maxInset = maxInset;
+      el.minInset = minInset;
+      el.resizeAroundCenter = resizeAroundCenter;
+      el.zoomAroundCenter = zoomAroundCenter;
+    }, [
+      borderRadius,
+      maxInset,
+      minInset,
+      resizeAroundCenter,
+      zoomAroundCenter,
+    ]);
+
     useCustomEvents(elementRef, {
       action: onAction,
       actionstart: onActionStart,
       actionmove: onActionMove,
       actionend: onActionEnd,
-      change: onChange,
     });
+
+    // Viewers register target listeners when they connect, before React effects.
+    // Cancel changes in capture so those listeners see the accepted geometry.
+    useCustomEvents(elementRef, { change: onChange }, { capture: true });
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
     useEffect(() => {
       const el = elementRef.current;
       if (!bounded || !el) return;
 
-      const handleLimit = (event: CustomEvent) => {
+      const handleLimit = (event: Event) => {
         const canvas = el.parentElement as CropperCanvasElement | null;
         const image = canvas?.querySelector(
           'cropper-image',
@@ -148,7 +192,7 @@ export const CropperSelection = forwardRef<
 
         const canvasRect = canvas.getBoundingClientRect();
         const imageRect = image.getBoundingClientRect();
-        const selection = event.detail;
+        const selection = (event as CropperSelectionChangeEvent).detail;
 
         const bounds = {
           x: imageRect.left - canvasRect.left,
@@ -168,12 +212,9 @@ export const CropperSelection = forwardRef<
         }
       };
 
-      el.addEventListener('change', handleLimit as unknown as EventListener);
+      el.addEventListener('change', handleLimit, { capture: true });
       return () => {
-        el.removeEventListener(
-          'change',
-          handleLimit as unknown as EventListener,
-        );
+        el.removeEventListener('change', handleLimit, { capture: true });
       };
     }, [bounded]);
 
@@ -188,6 +229,11 @@ export const CropperSelection = forwardRef<
         aspect-ratio={aspectRatio}
         initial-aspect-ratio={initialAspectRatio}
         initial-coverage={initialCoverage}
+        border-radius={borderRadius}
+        max-inset={maxInset}
+        min-inset={minInset}
+        resize-around-center={resizeAroundCenter ? '' : undefined}
+        zoom-around-center={zoomAroundCenter ? '' : undefined}
         movable={movable}
         resizable={resizable}
         zoomable={zoomable}

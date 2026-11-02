@@ -35,6 +35,9 @@ declare global {
         'initial-fit'?: import('./components/CropperImage').CropperImageFit;
         'max-fit'?: import('./components/CropperImage').CropperImageFit | '';
         'min-fit'?: import('./components/CropperImage').CropperImageFit | '';
+        'max-inset'?: string;
+        'min-inset'?: string;
+        'zoom-around-center'?: '';
         rotatable?: boolean;
         scalable?: boolean;
         skewable?: boolean;
@@ -48,6 +51,7 @@ declare global {
         ref?: import('react').RefObject<
           import('cropperjs').CropperShade | null
         >;
+        'border-radius'?: string;
         slottable?: boolean;
         'theme-color'?: string;
       };
@@ -79,6 +83,11 @@ declare global {
         dynamic?: boolean;
         'initial-aspect-ratio'?: number;
         'initial-coverage'?: number;
+        'border-radius'?: string;
+        'max-inset'?: string;
+        'min-inset'?: string;
+        'resize-around-center'?: '';
+        'zoom-around-center'?: '';
         movable?: boolean;
         resizable?: boolean;
         zoomable?: boolean;

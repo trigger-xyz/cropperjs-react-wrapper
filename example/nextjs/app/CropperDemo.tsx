@@ -7,6 +7,8 @@ import {
   CropperHandle,
   CropperImage,
   CropperSelection,
+  CropperShade,
+  CropperViewer,
 } from 'cropperjs-react-wrapper';
 
 export default function CropperDemo() {
@@ -18,17 +20,27 @@ export default function CropperDemo() {
         initialFit="contain"
         maxFit="none"
         minFit="contain"
+        minInset="auto"
+        maxInset="auto"
+        zoomAroundCenter
         rotatable
         scalable
         translatable
       />
+      <CropperShade />
       <CropperHandle action="select" plain />
       <CropperSelection
+        id="next-selection"
         initialCoverage={0.6}
         movable
         resizable
         zoomable
         outlined
+        borderRadius="24px"
+        minInset="0"
+        maxInset="auto"
+        resizeAroundCenter
+        zoomAroundCenter
       >
         <CropperGrid role="grid" covered bordered />
         <CropperCrosshair centered />
@@ -42,6 +54,10 @@ export default function CropperDemo() {
         <CropperHandle action="se-resize" />
         <CropperHandle action="sw-resize" />
       </CropperSelection>
+      <CropperViewer
+        selection="#next-selection"
+        style={{ width: 160, position: 'absolute', right: 16, bottom: 16 }}
+      />
     </CropperCanvas>
   );
 }

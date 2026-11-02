@@ -10,23 +10,25 @@ import { useForwardedRef } from '../hooks';
 export interface CropperShadeProps
   extends DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> {
   slottable?: boolean;
+  borderRadius?: string;
   themeColor?: string;
 }
 
 export const CropperShade = forwardRef<CropperShadeElement, CropperShadeProps>(
-  ({ themeColor, ...rest }, ref) => {
+  ({ borderRadius, themeColor, ...rest }, ref) => {
     const elementRef = useForwardedRef<CropperShadeElement>(ref);
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
     useEffect(() => {
       const el = elementRef.current;
       if (!el) return;
+      if (borderRadius !== undefined) el.borderRadius = borderRadius;
       if (themeColor !== undefined) el.themeColor = themeColor;
-    }, [themeColor]);
+    }, [borderRadius, themeColor]);
 
     return (
       // @ts-expect-error web component
-      <cropper-shade ref={elementRef} {...rest} />
+      <cropper-shade ref={elementRef} border-radius={borderRadius} {...rest} />
     );
   },
 );

@@ -4,10 +4,10 @@ A modern, lightweight React wrapper for [Cropper.js v2](https://github.com/fengy
 
 ## Features
 
-- ⚛️ **React 18+ Support**: Built for modern React applications.
-- 📦 **Cropper.js 2.2**: Supports the latest Web Components API, including image fit limits and cancelable image change events.
-- 🧩 **Component-Based**: Compose your cropper using individual components (`CropperCanvas`, `CropperImage`, `CropperSelection`, etc.) for maximum flexibility.
-- 🟦 **TypeScript**: Fully typed for excellent developer experience.
+- ⚛️ **React Support**: Compatible with React 18 and React 19.
+- 📦 **Cropper.js v2**: Image transformations, crop constraints, and live previews.
+- 🧩 **Component-Based**: Compose your cropper from image, selection, handle, and preview components.
+- 🟦 **TypeScript**: Fully typed props, refs, and events.
 - 🚀 **ESM Only**: Modern module format.
 
 ## Installation
@@ -26,10 +26,7 @@ bun add cropperjs-react-wrapper cropperjs
 
 ### Basic Example
 
-Compose the components to build your cropping interface. This gives you full control over the layout and behavior.
-
 ```tsx
-import React from 'react';
 import {
   CropperCanvas,
   CropperImage,
@@ -37,11 +34,11 @@ import {
   CropperHandle,
   CropperGrid,
   CropperCrosshair,
-} from 'cropperjs-react-wrapper';
+} from "cropperjs-react-wrapper";
 
-const App = () => {
+export default function App() {
   return (
-    <div style={{ width: '100%', height: 400 }}>
+    <div style={{ width: "100%", height: 400 }}>
       <CropperCanvas background>
         <CropperImage
           src="https://fengyuanchen.github.io/cropperjs/images/picture.jpg"
@@ -56,10 +53,6 @@ const App = () => {
           <CropperGrid role="grid" covered bordered />
           <CropperCrosshair centered />
           <CropperHandle action="move" themeColor="rgba(255, 255, 255, 0.35)" />
-          <CropperHandle action="n-resize" />
-          <CropperHandle action="e-resize" />
-          <CropperHandle action="s-resize" />
-          <CropperHandle action="w-resize" />
           <CropperHandle action="ne-resize" />
           <CropperHandle action="nw-resize" />
           <CropperHandle action="se-resize" />
@@ -68,117 +61,148 @@ const App = () => {
       </CropperCanvas>
     </div>
   );
-};
-
-export default App;
+}
 ```
 
 ### Components
 
-The library exports React components that wrap the corresponding Cropper.js 2.2 custom elements:
+Each component wraps a Cropper.js custom element:
 
-| Component | Cropper.js Element | Description |
-| --- | --- | --- |
-| `CropperCanvas` | `<cropper-canvas>` | The main container for the cropper. |
-| `CropperImage` | `<cropper-image>` | The image to be cropped. Supports transformations. |
-| `CropperSelection` | `<cropper-selection>` | The crop box selection area. |
-| `CropperGrid` | `<cropper-grid>` | A grid displayed within the selection. |
-| `CropperCrosshair` | `<cropper-crosshair>` | A crosshair displayed within the selection. |
-| `CropperHandle` | `<cropper-handle>` | Interactive handles for resizing or moving the selection. |
-| `CropperShade` | `<cropper-shade>` | An overlay shade for the non-selected area. |
-| `CropperViewer` | `<cropper-viewer>` | A live view of a cropper selection. |
+| Component          | Cropper.js Element    | Description                                               |
+| ------------------ | --------------------- | --------------------------------------------------------- |
+| `CropperCanvas`    | `<cropper-canvas>`    | The main container for the cropper.                       |
+| `CropperImage`     | `<cropper-image>`     | The image to be cropped. Supports transformations.        |
+| `CropperSelection` | `<cropper-selection>` | The crop box selection area.                              |
+| `CropperGrid`      | `<cropper-grid>`      | A grid displayed within the selection.                    |
+| `CropperCrosshair` | `<cropper-crosshair>` | A crosshair displayed within the selection.               |
+| `CropperHandle`    | `<cropper-handle>`    | Interactive handles for resizing or moving the selection. |
+| `CropperShade`     | `<cropper-shade>`     | An overlay shade for the non-selected area.               |
+| `CropperViewer`    | `<cropper-viewer>`    | A live view of a cropper selection.                       |
 
 ### Accessing Methods
 
-You can access the underlying DOM elements and their methods (like `$rotate`, `$scale`, `$toCanvas`) using React refs.
+Use React refs to access methods such as `$rotate`, `$scale`, and `$toCanvas`.
 
 ```tsx
-import type { CropperImage as CropperImageElement } from 'cropperjs';
-import { useRef } from 'react';
-import { CropperCanvas, CropperImage } from 'cropperjs-react-wrapper';
+import type { CropperImage as CropperImageElement } from "cropperjs";
+import { useRef } from "react";
+import { CropperCanvas, CropperImage } from "cropperjs-react-wrapper";
 
-const App = () => {
+function RotateExample() {
   const imageRef = useRef<CropperImageElement>(null);
-
-  const handleRotate = () => {
-    imageRef.current?.$rotate('90deg');
-  };
 
   return (
     <>
-      <button onClick={handleRotate}>Rotate</button>
+      <button onClick={() => imageRef.current?.$rotate("90deg")}>Rotate</button>
       <CropperCanvas>
-        <CropperImage ref={imageRef} src="..." />
-        {/* ... */}
+        <CropperImage ref={imageRef} src="/photo.jpg" rotatable />
       </CropperCanvas>
     </>
   );
-};
+}
 ```
 
-## Cropper.js 2.2 image sizing
+## Image Sizing
 
-Cropper.js 2.2 replaces `initialCenterSize` with `initialFit` and adds optional minimum and maximum fit limits. The deprecated `initialCenterSize` prop remains available for compatibility.
+Use `initialFit` to fit the image to its canvas, `minFit` and `maxFit` to limit its size, and inset limits to constrain its position.
 
 `CropperImage` also exposes the native image properties supported by Cropper.js: `crossOrigin`, `decoding`, `elementTiming`, `fetchPriority`, `loading`, `referrerPolicy`, `sizes`, and `srcSet`. Every wrapper exposes the shared `slottable` property.
 
 ```tsx
 <CropperImage
+  src="/photo.jpg"
   initialFit="cover"
   minFit="contain"
   maxFit="none"
-  onChange={(event) => {
-    console.log(event.detail);
-    // Prevent the pending size or position change when needed.
-    // event.preventDefault();
-  }}
 />
 ```
 
-## Typed action events
+## Selection and Image Controls
 
-Canvas and selection action handlers expose typed Cropper.js event details. Depending on the action, these include pointer coordinates, scaling, rotation, and the Cropper.js 2.2 transform center.
+| Component          | Props                                    | Default                                     |
+| ------------------ | ---------------------------------------- | ------------------------------------------- |
+| `CropperImage`     | `minInset`, `maxInset`                   | `"auto"`                                    |
+| `CropperImage`     | `zoomAroundCenter`                       | `false`                                     |
+| `CropperSelection` | `minInset`, `maxInset`                   | `"auto"`                                    |
+| `CropperSelection` | `resizeAroundCenter`, `zoomAroundCenter` | `false`                                     |
+| `CropperSelection` | `borderRadius`                           | `""`                                        |
+| `CropperShade`     | `borderRadius`                           | Follows the selection when connected to one |
+
+Insets constrain distances to the parent edges using CSS inset syntax: pixels, percentages, `calc()`, or `auto` for no limit. Set `minInset="0"` to keep an element inside its parent or `maxInset="0"` to require full coverage. Changes outside these limits are rejected. Use `bounded` to constrain the selection to the image rectangle instead.
+
+`initialCoverage` uses image bounds when available and preserves explicit selection dimensions, so initialization may finish after loading.
 
 ```tsx
-import type { CropperActionEvent } from 'cropperjs-react-wrapper';
+<CropperCanvas background style={{ height: 400 }}>
+  <CropperImage src="/photo.jpg" scalable translatable zoomAroundCenter />
+  <CropperShade />
+  <CropperSelection
+    initialCoverage={0.5}
+    aspectRatio={1}
+    minInset="0"
+    borderRadius="50%"
+    movable
+    resizable
+    resizeAroundCenter
+    zoomable
+    zoomAroundCenter
+  >
+    <CropperHandle action="move" />
+    <CropperHandle action="se-resize" />
+  </CropperSelection>
+</CropperCanvas>
+```
+
+`borderRadius` clips the selection and its `$toCanvas()` output. The shade and viewer follow its radius. Export as PNG or WebP to preserve transparent corners.
+
+## Image Loading and Previews
+
+For image sources supplied after mount, render `CropperViewer` after the image's `onReady` callback fires. Readiness runs again when `src` or `srcSet` changes; pending callbacks are canceled on unmount.
+
+Changing a viewer's `selection` or `resize` prop reconnects its element and updates the ref. Viewers also work with non-interactive images and retain the accepted crop when a change is canceled.
+
+Keep the same `CropperImage` element when changing source or fit props. Changing only its React `key` can leave exports attached to the previous element. If replacing it, remount the canvas and its children together.
+
+## Typed Events
+
+Image and selection `onChange` handlers expose typed `x`, `y`, `width`, and `height` fields. Call `event.preventDefault()` to reject a pending change.
+
+Action events include pointer coordinates, scaling, rotation, and transform centers:
+
+```tsx
+import type { CropperActionEvent } from "cropperjs-react-wrapper";
 
 const handleAction = (event: CropperActionEvent) => {
-  const { action, scale, rotate, centerX, centerY } = event.detail;
-
-  if (action === 'scale') {
+  const { action, scale, centerX, centerY } = event.detail;
+  if (action === "scale") {
     console.log({ scale, centerX, centerY });
   }
-
-  // Cancel the pending Cropper.js action when needed.
-  // event.preventDefault();
 };
 
 <CropperCanvas onAction={handleAction}>{/* ... */}</CropperCanvas>;
 ```
 
-The package also exports `CropperActionStartEvent`, `CropperActionMoveEvent`, `CropperActionEndEvent`, and their detail types.
+The package exports action, action-start, action-move, action-end, image-change, and selection-change event types and their detail types.
 
 ## Development
 
-Repository development and CI use npm. The Bun command above is provided for consumers installing the published package.
+Use the Node.js version in `.node-version` and npm version in `package.json` under `packageManager`, then run `npm ci`.
 
 ### Commands
 
-- `npm run dev`: Start the Vite demo app from `example/vite`.
-- `npm run dev:vite`: Start the Vite demo app.
-- `npm run dev:nextjs`: Build the package and start the Next.js fixture from `example/nextjs`.
-- `npm run build`: Build the library and assert that React JSX runtimes stay external.
-- `npm run build:examples`: Build the library, then build all example workspaces through Turbo.
-- `npm run test`: Run tests using Vitest.
-- `npm run test:all`: Run the main suite and compatibility-fixture tests once.
-- `npm run typecheck`: Typecheck the built library and all workspaces.
-- `npm run lint`: Run linting using Biome.
+- `npm run dev` / `npm run dev:vite`: Start the Vite demo.
+- `npm run dev:nextjs`: Build the library and start the Next.js example.
+- `npm run build` / `npm run build:examples`: Build the library alone or with all examples.
+- `npm test` / `npm run test:all`: Watch library tests or run all unit tests once.
+- `npm run test:browser` / `npm run test:browser:firefox`: Test all apps in Chromium or Firefox. Run `npx playwright install chromium firefox` and `npm run build:examples` first.
+- `npm run typecheck`: Typecheck the library and workspaces.
+- `npm run lint`: Check formatting and lint rules with Biome.
 
 ### Examples
 
-- `example/vite`: Interactive Vite demo for local wrapper development.
-- `example/react18`: React 18 compatibility fixture with production-build and type checks.
-- `example/nextjs`: Next.js App Router fixture for browser module evaluation and packaging regressions.
+- `example/vite`: Interactive demo.
+- `example/react18`: React 18 compatibility fixture.
+- `example/nextjs`: Next.js App Router fixture.
 
 ## License
 

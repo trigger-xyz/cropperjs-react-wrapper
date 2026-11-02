@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "cropperjs": "^2.2.0",
+    "cropperjs": "^2.3.1",
     "cropperjs-react-wrapper": "file:../..",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

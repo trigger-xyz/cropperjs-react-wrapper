@@ -1,5 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [
+    "src/**",
+    "dist/**",
+    "vite*.config.ts",
+    "tsconfig*.json",
+    "example/vite/assets/**"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

@@ -5,4 +5,7 @@ dist
 .env
 .DS_Store
 coverage
+.vitest
 *.tsbuildinfo
+playwright-report
+test-results

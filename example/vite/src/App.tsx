@@ -13,9 +13,10 @@ import {
   type CropperImageChangeEvent,
   type CropperImageFit,
   CropperSelection,
+  type CropperSelectionChangeEventDetail,
   CropperShade,
 } from 'cropperjs-react-wrapper';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import image1 from '../assets/image1.png';
 import image2 from '../assets/image2.png';
 
@@ -28,28 +29,37 @@ const FIT_OPTIONS: CropperImageFit[] = [
 ];
 
 type FitConstraint = CropperImageFit | '';
+type ExportFormat = 'png' | 'jpeg' | 'webp';
+
+interface CroppedResult {
+  src: string;
+  format: ExportFormat;
+}
 
 const App = () => {
   const cropperRef = useRef<CropperCanvasElement>(null);
   const imageRef = useRef<CropperImageElement>(null);
   const selectionRef = useRef<CropperSelectionElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewFrameRef = useRef<number | null>(null);
+  const previewRevisionRef = useRef(0);
 
   // Image state
   const [imgSrc, setImgSrc] = useState(image1);
-  const [croppedImage, setCroppedImage] = useState<string | undefined>();
+  const [croppedImage, setCroppedImage] = useState<CroppedResult>();
   const [livePreview, setLivePreview] = useState<string | undefined>();
 
   // Canvas controls
   const [canvasBackground, setCanvasBackground] = useState(true);
   const [canvasDisabled, setCanvasDisabled] = useState(false);
 
-  // Image transformation controls (track flip state)
-  const [scaleX, setScaleX] = useState(1);
-  const [scaleY, setScaleY] = useState(1);
+  // Image transformation controls
   const [initialFit, setInitialFit] = useState<CropperImageFit>('contain');
   const [maxFit, setMaxFit] = useState<FitConstraint>('');
   const [minFit, setMinFit] = useState<FitConstraint>('');
+  const [imageMinInset, setImageMinInset] = useState('auto');
+  const [imageMaxInset, setImageMaxInset] = useState('auto');
+  const [imageZoomAroundCenter, setImageZoomAroundCenter] = useState(false);
   const [lastCenterFit, setLastCenterFit] =
     useState<CropperImageFit>('contain');
 
@@ -62,6 +72,12 @@ const App = () => {
   const [movable, setMovable] = useState(true);
   const [resizable, setResizable] = useState(true);
   const [zoomable, setZoomable] = useState(true);
+  const [selectionMinInset, setSelectionMinInset] = useState('auto');
+  const [selectionMaxInset, setSelectionMaxInset] = useState('auto');
+  const [resizeAroundCenter, setResizeAroundCenter] = useState(false);
+  const [selectionZoomAroundCenter, setSelectionZoomAroundCenter] =
+    useState(false);
+  const [borderRadius, setBorderRadius] = useState('');
 
   // Grid controls
   const [gridRows, setGridRows] = useState(3);
@@ -88,46 +104,60 @@ const App = () => {
   const [imageChangeCount, setImageChangeCount] = useState(0);
 
   // Export controls
-  const [exportFormat, setExportFormat] = useState<'png' | 'jpeg' | 'webp'>(
-    'png',
-  );
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('png');
   const [exportQuality, setExportQuality] = useState(0.92);
-  const [cropData, setCropData] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  const [cropData, setCropData] =
+    useState<CropperSelectionChangeEventDetail | null>(null);
 
   // UI state
   const [activeTab, setActiveTab] = useState<
     'basic' | 'transform' | 'behavior' | 'events' | 'export'
   >('basic');
 
-  const updateLivePreview = async () => {
-    const selection = selectionRef.current;
-    if (selection && selection.width > 0 && selection.height > 0) {
-      const canvas = await selection.$toCanvas();
-      setLivePreview(canvas.toDataURL());
-    } else {
-      setLivePreview(undefined);
+  const onCrop = useCallback(() => {
+    const revision = ++previewRevisionRef.current;
+    if (previewFrameRef.current !== null) {
+      cancelAnimationFrame(previewFrameRef.current);
     }
-  };
-
-  const onCrop = () => {
-    updateLivePreview();
-    const selection = selectionRef.current;
-    if (selection && selection.width > 0 && selection.height > 0) {
+    // Cropper change events describe pending changes. Read the committed
+    // geometry on the next frame, after other listeners can cancel them.
+    previewFrameRef.current = requestAnimationFrame(async () => {
+      previewFrameRef.current = null;
+      const selection = selectionRef.current;
+      if (!selection?.isConnected) return;
+      if (selection.width <= 0 || selection.height <= 0) {
+        setCropData(null);
+        setLivePreview(undefined);
+        return;
+      }
       setCropData({
         x: Math.round(selection.x),
         y: Math.round(selection.y),
         width: Math.round(selection.width),
         height: Math.round(selection.height),
       });
-    } else {
-      setCropData(null);
-    }
-  };
+      try {
+        const canvas = await selection.$toCanvas();
+        if (revision === previewRevisionRef.current && selection.isConnected) {
+          setLivePreview(canvas.toDataURL());
+        }
+      } catch {
+        if (revision === previewRevisionRef.current && selection.isConnected) {
+          setLivePreview(undefined);
+        }
+      }
+    });
+  }, []);
+
+  useEffect(
+    () => () => {
+      previewRevisionRef.current += 1;
+      if (previewFrameRef.current !== null) {
+        cancelAnimationFrame(previewFrameRef.current);
+      }
+    },
+    [],
+  );
 
   const handleGetResult = async () => {
     const selection = selectionRef.current;
@@ -135,7 +165,7 @@ const App = () => {
       const canvas = await selection.$toCanvas();
       const mimeType = `image/${exportFormat}`;
       const dataUrl = canvas.toDataURL(mimeType, exportQuality);
-      setCroppedImage(dataUrl);
+      setCroppedImage({ src: dataUrl, format: exportFormat });
     }
   };
 
@@ -161,11 +191,11 @@ const App = () => {
   };
 
   const handleFlipHorizontal = () => {
-    setScaleX((prev) => prev * -1);
+    imageRef.current?.$scale(-1, 1);
   };
 
   const handleFlipVertical = () => {
-    setScaleY((prev) => prev * -1);
+    imageRef.current?.$scale(1, -1);
   };
 
   const handleZoom = (delta: number) => {
@@ -177,30 +207,20 @@ const App = () => {
 
   const handleCenter = (fit: CropperImageFit) => {
     imageRef.current?.$resetTransform().$center(fit);
-    setScaleX(1);
-    setScaleY(1);
     setLastCenterFit(fit);
-  };
-
-  const resetFlipState = () => {
-    setScaleX(1);
-    setScaleY(1);
   };
 
   const handleInitialFitChange = (fit: CropperImageFit) => {
     setInitialFit(fit);
     setLastCenterFit(fit);
-    resetFlipState();
   };
 
   const handleMinFitChange = (fit: FitConstraint) => {
     setMinFit(fit);
-    resetFlipState();
   };
 
   const handleMaxFitChange = (fit: FitConstraint) => {
     setMaxFit(fit);
-    resetFlipState();
   };
 
   const handleImageChange = (event: CropperImageChangeEvent) => {
@@ -212,6 +232,7 @@ const App = () => {
       ...event.detail,
       prevented: preventImageChanges,
     });
+    onCrop();
   };
 
   const handleCanvasAction = (event: CropperActionEvent) => {
@@ -232,19 +253,10 @@ const App = () => {
   const formatEventNumber = (value: number | undefined) =>
     value === undefined ? '—' : value.toFixed(2);
 
-  useEffect(() => {
-    const image = imageRef.current;
-    if (image) {
-      image.$scale(scaleX, scaleY);
-    }
-  }, [scaleX, scaleY]);
-
   const handleResetTransformations = () => {
     const image = imageRef.current;
     if (image) {
       image.$resetTransform();
-      setScaleX(1);
-      setScaleY(1);
     }
   };
 
@@ -263,21 +275,17 @@ const App = () => {
   };
 
   const downloadImage = async () => {
-    if (!livePreview) return;
+    const selection = selectionRef.current;
+    if (!selection || selection.width <= 0 || selection.height <= 0) return;
 
     try {
-      const response = await fetch(livePreview);
-      const blob = await response.blob();
-
-      const url = URL.createObjectURL(blob);
+      const canvas = await selection.$toCanvas();
       const link = document.createElement('a');
-      link.href = url;
+      link.href = canvas.toDataURL(`image/${exportFormat}`, exportQuality);
       link.download = `cropped-image-${Date.now()}.${exportFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
-      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading image:', error);
     }
@@ -299,18 +307,21 @@ const App = () => {
               onAction={handleCanvasAction}
             >
               <CropperImage
-                key={`${initialFit}:${minFit}:${maxFit}`}
                 ref={imageRef}
                 src={imgSrc}
                 alt="Picture"
                 initialFit={initialFit}
                 maxFit={maxFit}
                 minFit={minFit}
+                minInset={imageMinInset}
+                maxInset={imageMaxInset}
+                zoomAroundCenter={imageZoomAroundCenter}
                 rotatable={true}
                 scalable={true}
                 skewable={true}
                 translatable={true}
                 onChange={handleImageChange}
+                onReady={onCrop}
               />
               {showShade && <CropperShade themeColor={themeColor} />}
               <CropperHandle action="select" plain />
@@ -321,6 +332,11 @@ const App = () => {
                 movable={movable}
                 resizable={resizable}
                 zoomable={zoomable}
+                minInset={selectionMinInset}
+                maxInset={selectionMaxInset}
+                resizeAroundCenter={resizeAroundCenter}
+                zoomAroundCenter={selectionZoomAroundCenter}
+                borderRadius={borderRadius}
                 keyboard={true}
                 outlined={true}
                 bounded={true}
@@ -548,9 +564,9 @@ const App = () => {
                 <div className="control-section">
                   <h3>Fit &amp; Center</h3>
                   <p className="control-description">
-                    Choose the automatic image fit and optional zoom limits. The
-                    three settings are initialized together; center commands
-                    apply immediately and respect the active limits.
+                    Choose the automatic image fit and optional zoom limits.
+                    Changing the fit centers the image. Changing limits also
+                    resets its transform.
                   </p>
                   <div className="control-group">
                     <label>
@@ -717,6 +733,84 @@ const App = () => {
                       />
                       Zoomable
                     </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={resizeAroundCenter}
+                        onChange={(e) =>
+                          setResizeAroundCenter(e.target.checked)
+                        }
+                      />
+                      Resize selection around center
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={selectionZoomAroundCenter}
+                        onChange={(e) =>
+                          setSelectionZoomAroundCenter(e.target.checked)
+                        }
+                      />
+                      Zoom selection around center
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={imageZoomAroundCenter}
+                        onChange={(e) =>
+                          setImageZoomAroundCenter(e.target.checked)
+                        }
+                      />
+                      Zoom image around center
+                    </label>
+                  </div>
+                </div>
+
+                <div className="control-section">
+                  <h3>Boundaries and rounded crops</h3>
+                  <p className="control-description">
+                    Insets measure distances to the canvas edges. Use auto for
+                    no limit, 0 to stay inside, or CSS lengths and percentages.
+                    Image bounds still limit the selection. A border radius also
+                    clips the exported image.
+                  </p>
+                  <div className="control-group">
+                    <label>
+                      Image minimum inset:
+                      <input
+                        value={imageMinInset}
+                        onChange={(e) => setImageMinInset(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Image maximum inset:
+                      <input
+                        value={imageMaxInset}
+                        onChange={(e) => setImageMaxInset(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Selection minimum inset:
+                      <input
+                        value={selectionMinInset}
+                        onChange={(e) => setSelectionMinInset(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Selection maximum inset:
+                      <input
+                        value={selectionMaxInset}
+                        onChange={(e) => setSelectionMaxInset(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Border radius:
+                      <input
+                        placeholder="0, 16px, or 50%"
+                        value={borderRadius}
+                        onChange={(e) => setBorderRadius(e.target.value)}
+                      />
+                    </label>
                   </div>
                 </div>
 
@@ -867,9 +961,7 @@ const App = () => {
                       <select
                         value={exportFormat}
                         onChange={(e) =>
-                          setExportFormat(
-                            e.target.value as 'png' | 'jpeg' | 'webp',
-                          )
+                          setExportFormat(e.target.value as ExportFormat)
                         }
                       >
                         <option value="png">PNG</option>
@@ -918,9 +1010,16 @@ const App = () => {
         {croppedImage && (
           <div className="result-section">
             <h2>Cropped Result</h2>
-            <img src={croppedImage} alt="Cropped" className="preview-image" />
+            <img
+              src={croppedImage.src}
+              alt="Cropped"
+              className="preview-image"
+            />
             <div className="control-group">
-              <a href={croppedImage} download={`cropped.${exportFormat}`}>
+              <a
+                href={croppedImage.src}
+                download={`cropped.${croppedImage.format}`}
+              >
                 <button type="button">Download</button>
               </a>
             </div>

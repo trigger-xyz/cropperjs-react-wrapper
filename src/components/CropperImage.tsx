@@ -5,6 +5,8 @@ import {
   type HTMLAttributes,
   type ImgHTMLAttributes,
   useEffect,
+  useLayoutEffect,
+  useRef,
 } from 'react';
 import { useCustomEvents, useForwardedRef } from '../hooks';
 
@@ -45,6 +47,12 @@ export interface CropperImageProps
   initialFit?: CropperImageFit;
   maxFit?: CropperImageFit | '';
   minFit?: CropperImageFit | '';
+  /** Maximum edge distances from the canvas, using CSS inset syntax. */
+  maxInset?: string;
+  /** Minimum edge distances from the canvas, using CSS inset syntax. */
+  minInset?: string;
+  /** Use the image center as the origin for interactive zooming. */
+  zoomAroundCenter?: boolean;
   rotatable?: boolean;
   scalable?: boolean;
   skewable?: boolean;
@@ -71,6 +79,9 @@ export const CropperImage = forwardRef<CropperImageElement, CropperImageProps>(
       initialFit,
       maxFit,
       minFit,
+      maxInset = 'auto',
+      minInset = 'auto',
+      zoomAroundCenter = false,
       rotatable,
       scalable,
       skewable,
@@ -127,16 +138,42 @@ export const CropperImage = forwardRef<CropperImageElement, CropperImageProps>(
       translatable,
     ]);
 
+    // Keep the new controls independent of source and transformation updates.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
+    useEffect(() => {
+      const el = elementRef.current;
+      if (!el) return;
+      el.maxInset = maxInset;
+      el.minInset = minInset;
+      el.zoomAroundCenter = zoomAroundCenter;
+    }, [maxInset, minInset, zoomAroundCenter]);
+
     useCustomEvents(elementRef, {
       change: onChange,
     });
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable after mount
+    const onReadyRef = useRef(onReady);
+    useLayoutEffect(() => {
+      onReadyRef.current = onReady;
+    }, [onReady]);
+    const hasOnReady = Boolean(onReady);
+
+    // biome-ignore lint/correctness/useExhaustiveDependencies: ref is stable; callback changes must not restart readiness
     useEffect(() => {
       const el = elementRef.current;
-      if (!el || !onReady) return;
-      el.$ready(() => onReady(el));
-    }, [onReady]);
+      if (!el || !hasOnReady) return;
+      let active = true;
+      el.$ready().then(
+        () => {
+          if (active) onReadyRef.current?.(el);
+        },
+        // A failed source is not ready. A later source can try again.
+        () => {},
+      );
+      return () => {
+        active = false;
+      };
+    }, [hasOnReady, src, srcSet]);
 
     return (
       // @ts-expect-error web component
@@ -156,6 +193,13 @@ export const CropperImage = forwardRef<CropperImageElement, CropperImageProps>(
         initial-fit={initialFit}
         max-fit={maxFit}
         min-fit={minFit}
+        max-inset={maxInset}
+        min-inset={minInset}
+        zoom-around-center={zoomAroundCenter ? '' : undefined}
+        rotatable={rotatable}
+        scalable={scalable}
+        skewable={skewable}
+        translatable={translatable}
         {...rest}
       />
     );

@@ -27,7 +27,14 @@
       "cropperjs-react-wrapper": ["./src"]
     }
   },
-  "include": ["src", "example", "src/types.d.ts"],
+  "include": [
+    "src",
+    "example",
+    "src/types.d.ts",
+    "tests/browser",
+    "tests/compatibility/run.ts",
+    "playwright*.config.ts"
+  ],
   "exclude": ["example/react18"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
